@@ -29,7 +29,7 @@
       text-align: center;
     }
 
-    button {
+    .controls button {
       font-size: 1.2rem;
       padding: 0.5rem 1rem;
       margin: 0.5rem;
@@ -44,9 +44,11 @@
     Break: <input id="breakDuration" type="number" min="1" value="5"> min
   </div>
   <div id="timer">25:00</div>
-  <button id="startButton">Start</button>
-  <button id="pauseButton">Pause</button>
-  <button id="resetButton">Reset</button>
+  <div class="controls">
+    <button id="startButton">Start</button>
+    <button id="pauseButton">Pause</button>
+    <button id="resetButton">Reset</button>
+  </div>
 
   <audio id="alertSound">
     <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
@@ -64,9 +66,9 @@
 
     let interval;
     let isWork = true;
+    let endTime = null;
     let remainingTime = 0;
     let paused = false;
-    let pauseTime = 0;
 
     function updateDisplay(msLeft) {
       const mins = Math.floor(msLeft / 60000);
@@ -74,28 +76,30 @@
       timerDisplay.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
     }
 
-    function startTimer(duration) {
-      let end = Date.now() + duration * 60 * 1000;
-      interval = setInterval(() => {
-        if (paused) return;
-        const msLeft = end - Date.now();
-        remainingTime = msLeft;
-        if (msLeft <= 0) {
-          clearInterval(interval);
-          document.body.style.backgroundColor = isWork ? '#d1ffd1' : '#ffd1d1';
-          alertSound.play();
-          isWork = !isWork;
-          startTimer(isWork ? +workInput.value : +breakInput.value);
-        } else {
-          updateDisplay(msLeft);
-        }
-      }, 250);
+    function tick() {
+      if (paused || !endTime) return;
+      const msLeft = endTime - Date.now();
+      remainingTime = msLeft;
+      if (msLeft <= 0) {
+        clearInterval(interval);
+        document.body.style.backgroundColor = isWork ? '#d1ffd1' : '#ffd1d1';
+        alertSound.play();
+        isWork = !isWork;
+        startTimer(isWork ? +workInput.value : +breakInput.value);
+      } else {
+        updateDisplay(msLeft);
+      }
+    }
+
+    function startTimer(durationMinutes) {
+      clearInterval(interval);
+      paused = false;
+      endTime = Date.now() + durationMinutes * 60000;
+      interval = setInterval(tick, 250);
     }
 
     startButton.onclick = () => {
-      clearInterval(interval);
       isWork = true;
-      paused = false;
       document.body.style.backgroundColor = '#f0f0f0';
       startTimer(+workInput.value);
     };
@@ -103,11 +107,11 @@
     pauseButton.onclick = () => {
       if (!paused) {
         paused = true;
-        pauseTime = remainingTime;
         clearInterval(interval);
       } else {
         paused = false;
-        startTimer(pauseTime / 60000);
+        endTime = Date.now() + remainingTime;
+        interval = setInterval(tick, 250);
       }
     };
 
@@ -115,6 +119,7 @@
       clearInterval(interval);
       paused = false;
       isWork = true;
+      endTime = null;
       document.body.style.backgroundColor = '#f0f0f0';
       updateDisplay(+workInput.value * 60000);
     };
