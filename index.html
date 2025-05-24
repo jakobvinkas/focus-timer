@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Focus Timer</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f0f0f0;
+      transition: background-color 0.5s;
+    }
+
+    h1 {
+      margin-top: 2rem;
+      font-size: 2.5rem;
+    }
+
+    #timer {
+      font-size: 6rem;
+      margin: 2rem 0;
+    }
+
+    input[type="number"] {
+      width: 60px;
+      padding: 0.3rem;
+      font-size: 1.2rem;
+      text-align: center;
+    }
+
+    button {
+      font-size: 1.2rem;
+      padding: 0.5rem 1rem;
+      margin-top: 1rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>Focus Timer</h1>
+  <div>
+    Work: <input id="workDuration" type="number" min="1" value="25"> min
+    Break: <input id="breakDuration" type="number" min="1" value="5"> min
+  </div>
+  <div id="timer">25:00</div>
+  <button id="startButton">Start</button>
+
+  <audio id="alertSound">
+    <source src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" type="audio/ogg">
+    Your browser does not support the audio element.
+  </audio>
+
+  <script>
+    const timerDisplay = document.getElementById('timer');
+    const startButton = document.getElementById('startButton');
+    const workInput = document.getElementById('workDuration');
+    const breakInput = document.getElementById('breakDuration');
+    const alertSound = document.getElementById('alertSound');
+
+    let interval;
+    let isWork = true;
+    let remainingTime = 0;
+
+    function startTimer(duration) {
+      let end = Date.now() + duration * 60 * 1000;
+      interval = setInterval(() => {
+        const msLeft = end - Date.now();
+        if (msLeft <= 0) {
+          clearInterval(interval);
+          document.body.style.backgroundColor = isWork ? '#d1ffd1' : '#ffd1d1';
+          alertSound.play();
+          isWork = !isWork;
+          startTimer(isWork ? +workInput.value : +breakInput.value);
+        } else {
+          const mins = Math.floor(msLeft / 60000);
+          const secs = Math.floor((msLeft % 60000) / 1000);
+          timerDisplay.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        }
+      }, 250);
+    }
+
+    startButton.onclick = () => {
+      clearInterval(interval);
+      isWork = true;
+      document.body.style.backgroundColor = '#f0f0f0';
+      startTimer(+workInput.value);
+    };
+  </script>
+</body>
+</html>
