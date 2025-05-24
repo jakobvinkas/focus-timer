@@ -5,11 +5,37 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Focus Timer</title>
   <style>
+    :root {
+      color-scheme: light dark;
+    }
+
     body {
       font-family: Arial, sans-serif;
       text-align: center;
       background-color: #f0f0f0;
-      transition: background-color 0.5s;
+      color: #000;
+      transition: background-color 0.5s, color 0.5s;
+    }
+
+    body.dark-mode {
+      background-color: #1e1e1e;
+      color: #ffffff;
+    }
+
+    body.work-mode {
+      background-color: #ffe5e5;
+    }
+
+    body.break-mode {
+      background-color: #e5ffe5;
+    }
+
+    body.dark-mode.work-mode {
+      background-color: #4d0000;
+    }
+
+    body.dark-mode.break-mode {
+      background-color: #003300;
     }
 
     h1 {
@@ -45,9 +71,9 @@
   </div>
   <div id="timer">25:00</div>
   <div class="controls">
-    <button id="startButton">Start</button>
-    <button id="pauseButton">Pause</button>
+    <button id="toggleButton">Start</button>
     <button id="resetButton">Reset</button>
+    <button id="themeToggle">Toggle Dark Mode</button>
   </div>
 
   <audio id="alertSound">
@@ -57,9 +83,9 @@
 
   <script>
     const timerDisplay = document.getElementById('timer');
-    const startButton = document.getElementById('startButton');
-    const pauseButton = document.getElementById('pauseButton');
+    const toggleButton = document.getElementById('toggleButton');
     const resetButton = document.getElementById('resetButton');
+    const themeToggle = document.getElementById('themeToggle');
     const workInput = document.getElementById('workDuration');
     const breakInput = document.getElementById('breakDuration');
     const alertSound = document.getElementById('alertSound');
@@ -68,7 +94,7 @@
     let isWork = true;
     let endTime = null;
     let remainingTime = 0;
-    let paused = false;
+    let running = false;
 
     function updateDisplay(msLeft) {
       const mins = Math.floor(msLeft / 60000);
@@ -77,51 +103,72 @@
     }
 
     function tick() {
-      if (paused || !endTime) return;
       const msLeft = endTime - Date.now();
       remainingTime = msLeft;
       if (msLeft <= 0) {
         clearInterval(interval);
-        document.body.style.backgroundColor = isWork ? '#d1ffd1' : '#ffd1d1';
         alertSound.play();
         isWork = !isWork;
+        setModeClass(isWork);
         startTimer(isWork ? +workInput.value : +breakInput.value);
       } else {
         updateDisplay(msLeft);
       }
     }
 
-    function startTimer(durationMinutes) {
-      clearInterval(interval);
-      paused = false;
-      endTime = Date.now() + durationMinutes * 60000;
-      interval = setInterval(tick, 250);
+    function setModeClass(isWork) {
+      document.body.classList.remove('work-mode', 'break-mode');
+      document.body.classList.add(isWork ? 'work-mode' : 'break-mode');
     }
 
-    startButton.onclick = () => {
-      isWork = true;
-      document.body.style.backgroundColor = '#f0f0f0';
-      startTimer(+workInput.value);
-    };
+    function startTimer(durationMinutes) {
+      endTime = Date.now() + durationMinutes * 60000;
+      interval = setInterval(tick, 250);
+      running = true;
+      toggleButton.textContent = 'Pause';
+      setModeClass(isWork);
+    }
 
-    pauseButton.onclick = () => {
-      if (!paused) {
-        paused = true;
-        clearInterval(interval);
+    function resumeTimer() {
+      endTime = Date.now() + remainingTime;
+      interval = setInterval(tick, 250);
+      running = true;
+      toggleButton.textContent = 'Pause';
+    }
+
+    function pauseTimer() {
+      clearInterval(interval);
+      running = false;
+      toggleButton.textContent = 'Start';
+    }
+
+    toggleButton.onclick = () => {
+      if (!running) {
+        if (!endTime || remainingTime <= 0) {
+          isWork = true;
+          setModeClass(isWork);
+          startTimer(+workInput.value);
+        } else {
+          resumeTimer();
+        }
       } else {
-        paused = false;
-        endTime = Date.now() + remainingTime;
-        interval = setInterval(tick, 250);
+        pauseTimer();
       }
     };
 
     resetButton.onclick = () => {
       clearInterval(interval);
-      paused = false;
+      running = false;
       isWork = true;
       endTime = null;
-      document.body.style.backgroundColor = '#f0f0f0';
+      remainingTime = 0;
+      document.body.classList.remove('work-mode', 'break-mode');
       updateDisplay(+workInput.value * 60000);
+      toggleButton.textContent = 'Start';
+    };
+
+    themeToggle.onclick = () => {
+      document.body.classList.toggle('dark-mode');
     };
 
     updateDisplay(+workInput.value * 60000);
